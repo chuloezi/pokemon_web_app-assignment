@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Search</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Pokémon Search</h1>
+        <p>Search and learn about Pokémon.</p>
+
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="Search Pokémon by name..."
+        >
+    </header>
+
+    <main>
+        <p id="message">Loading Pokémon...</p>
+
+        <div id="pokemonGrid" class="pokemon-grid"></div>
+
+        <div class="pagination">
+            <button id="prevButton">Previous</button>
+            <span id="pageInfo">Page 1</span>
+            <button id="nextButton">Next</button>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
