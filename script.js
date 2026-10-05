@@ -8,7 +8,30 @@ const pageInfo = document.getElementById("pageInfo");
 const limit = 20;
 let offset = 0;
 let currentPokemon = [];
+let allPokemon = [];
 let hasNextPage = true;
+
+let searchTimer;
+
+// Load the names/URLs of all Pokemon for global searching
+async function loadAllPokemonNames() {
+  try {
+    const response = await fetch(
+      "https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0"
+    );
+
+    if (!response.ok) {
+      throw new Error("Could not load Pokemon names.");
+    }
+
+    const data = await response.json();
+
+    // This contains only lightweight name + URL objects
+    allPokemon = data.results;
+  } catch (error) {
+    console.error("Could not load Pokemon names:", error);
+  }
+}
 
 // Get 20 Pokemon from the API
 async function loadPokemon() {
@@ -146,24 +169,83 @@ function displayPokemon(pokemonList) {
 }
 
 
-// Search Pokemon already loaded
+// Search ALL Pokemon
 searchInput.addEventListener("input", function () {
+  clearTimeout(searchTimer);
 
-    const searchText =
-        searchInput.value.toLowerCase().trim();
+  const searchText = searchInput.value
+    .toLowerCase()
+    .trim();
 
+  // If search is empty, show the current paginated page again
+  if (searchText === "") {
+    displayPokemon(currentPokemon);
 
-    const filteredPokemon =
-        currentPokemon.filter(function (pokemon) {
+    const pageNumber = Math.floor(offset / limit) + 1;
+    pageInfo.textContent = `Page ${pageNumber}`;
 
-            return pokemon.name
-                .toLowerCase()
-                .includes(searchText);
+    prevButton.disabled = offset === 0;
+    nextButton.disabled = !hasNextPage;
 
-        });
+    return;
+  }
 
+  // Wait briefly so we don't make API calls on every keystroke
+  searchTimer = setTimeout(async function () {
+    const matches = allPokemon.filter(function (pokemon) {
+      return pokemon.name
+        .toLowerCase()
+        .includes(searchText);
+    });
 
-    displayPokemon(filteredPokemon);
+    if (matches.length === 0) {
+      displayPokemon([]);
+      pageInfo.textContent = "Search results";
+      prevButton.disabled = true;
+      nextButton.disabled = true;
+      return;
+    }
+
+    try {
+      message.textContent = "Searching Pokemon...";
+
+      // Limit displayed search results to 20
+      const visibleMatches = matches.slice(0, 20);
+
+      const pokemonRequests = visibleMatches.map(
+        async function (pokemon) {
+          const response = await fetch(pokemon.url);
+
+          if (!response.ok) {
+            throw new Error(
+              "Could not load Pokemon details."
+            );
+          }
+
+          return response.json();
+        }
+      );
+
+      const pokemonDetails =
+        await Promise.all(pokemonRequests);
+
+      displayPokemon(pokemonDetails);
+
+      pageInfo.textContent =
+        `${matches.length} search result${
+          matches.length === 1 ? "" : "s"
+        }`;
+
+      // Pagination is for the main list, not search results
+      prevButton.disabled = true;
+      nextButton.disabled = true;
+    } catch (error) {
+      message.textContent =
+        "Something went wrong while searching.";
+
+      console.error(error);
+    }
+  }, 300);
 });
 
 
@@ -198,4 +280,9 @@ prevButton.addEventListener("click", function () {
 
 
 // Load Pokemon when the page opens
-loadPokemon();
+async function initializeApp() {
+  await loadAllPokemonNames();
+  await loadPokemon();
+}
+
+initializeApp();
